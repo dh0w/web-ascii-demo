@@ -108,7 +108,11 @@ async function convertSelectedFile() {
     imageToAsciiFromImageElement(img, cols, fontFamily, displayFontSize);
 
   // show ASCII text in <pre>
-  asciiOutput.textContent = ascii;
+  // remove trailing spaces on every row
+  const trimmedAscii = ascii.replace(/ +$/gm, "");
+  asciiOutput.textContent = trimmedAscii;
+  lastAsciiText = trimmedAscii;
+
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
