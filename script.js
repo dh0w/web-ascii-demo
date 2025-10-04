@@ -93,7 +93,7 @@ function imageToAsciiFromImageElement(imgElement, cols, fontFamily) {
 
   // dynamically scale <pre> font size to fit width (max ~90% of container)
   const containerWidth = asciiOutput.parentElement.clientWidth;
-  const maxFontSize = Math.floor(containerWidth / cols) || 8;
+  const maxFontSize = Math.floor(containerWidth / cols);
   const displayFontSize = Math.min(14, maxFontSize); // cap at 14px
   const scaleFactor = displayFontSize / 140;
   const displayGlyphH = Math.max(1, Math.round(glyphH * scaleFactor));
@@ -103,7 +103,7 @@ function imageToAsciiFromImageElement(imgElement, cols, fontFamily) {
   asciiOutput.style.lineHeight = `${displayGlyphH}px`;
   asciiOutput.style.letterSpacing = "0px";
 
-  return { ascii, cols, rows, glyphW: displayGlyphH, glyphH: displayGlyphH, displayFontSize };
+  return { ascii, cols, rows, glyphW: displayGlyphH, glyphH: displayGlyphH };
 }
 
 // handle file conversion
@@ -121,55 +121,35 @@ async function convertSelectedFile() {
   img.src = URL.createObjectURL(file);
   await img.decode();
 
-  const { ascii, cols: c, rows: r, glyphW, glyphH, displayFontSize } = imageToAsciiFromImageElement(img, cols, fontFamily);
+  const { ascii, cols: c, rows: r, glyphW, glyphH } = imageToAsciiFromImageElement(img, cols, fontFamily);
 
   asciiOutput.textContent = ascii;
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
   // render ASCII to canvas for PNG
-  // Create a temp canvas context with same font to measure text widths precisely
-  const measureCtx = document.createElement("canvas").getContext("2d");
-  measureCtx.font = `${displayFontSize}px ${fontFamily}`;
-  measureCtx.textBaseline = "top";
+  const lines = ascii.split("\n");
+  const maxLineLength = Math.max(...lines.map(line => line.length));
 
-  const lines = ascii.split("\n").filter(Boolean);
-  let maxLineWidth = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const w = Math.ceil(measureCtx.measureText(lines[i]).width);
-    if (w > maxLineWidth) maxLineWidth = w;
-  }
-
-  // Fallback if empty
-  if (maxLineWidth === 0) maxLineWidth = Math.ceil(c * (glyphW || displayFontSize));
-
-  // Set canvas size to measured width and total height, leaving a small padding
-  const paddingX = Math.ceil(displayFontSize * 0.25);
-  const paddingY = Math.ceil(displayFontSize * 0.25);
-  asciiCanvas.width = maxLineWidth + paddingX * 2;
-  asciiCanvas.height = r * glyphH + paddingY * 2;
+  // set canvas size based on longest line and number of rows
+  asciiCanvas.width = maxLineLength * glyphW;
+  asciiCanvas.height = lines.length * glyphH;
 
   const ctx = asciiCanvas.getContext("2d");
-  // draw background
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, asciiCanvas.width, asciiCanvas.height);
 
-  // set font exactly as measured
   ctx.fillStyle = "white";
-  ctx.font = `${displayFontSize}px ${fontFamily}`;
+  ctx.font = `${glyphH}px ${fontFamily}`;
   ctx.textBaseline = "top";
 
-  // draw each line centered horizontally
-  for (let y = 0; y < r; y++) {
-    const line = lines[y] || "";
-    const lineWidth = Math.ceil(ctx.measureText(line).width);
-    const x = Math.round((asciiCanvas.width - lineWidth) / 2); // center horizontally
-    const yPos = paddingY + y * glyphH;
-    ctx.fillText(line, x, yPos);
+  for (let y = 0; y < lines.length; y++) {
+    const line = lines[y];
+    // center each line horizontally
+    const xOffset = Math.floor((asciiCanvas.width - line.length * glyphW) / 2);
+    ctx.fillText(line, xOffset, y * glyphH);
   }
 
-  // store last metrics for PNG download if needed
-  lastAsciiMetrics = { width: asciiCanvas.width, height: asciiCanvas.height };
 }
 
 // TXT download
