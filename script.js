@@ -85,81 +85,57 @@ async function convertSelectedFile() {
     return;
   }
 
+  // clamp columns between 10 and 600
   const cols = Math.max(10, Math.min(600, parseInt(colsInput.value, 10) || 100));
   const fontFamily = fontSelect.value || "monospace";
-
-  // choose display font size for preview (try to fit the preview container)
-  const containerWidth = asciiOutput.parentElement.clientWidth || document.body.clientWidth;
-  // simple heuristic: previewFontSize such that cols * approx glyph width <= containerWidth
-  // try a few font sizes from 14 downwards to find a fit
-  let displayFontSize = 14;
-  while (displayFontSize > 6) {
-    const { glyphWidth } = measureGlyphMetrics(fontFamily, displayFontSize);
-    if (glyphWidth * cols <= Math.round(containerWidth * 0.95)) break;
-    displayFontSize--;
-  }
 
   // load image
   const img = new Image();
   img.src = URL.createObjectURL(file);
-  try { await img.decode(); } catch (e) { /* continue even if decode fails */ }
+  await img.decode();
 
-  const { ascii, cols: c, rows: r, glyphWidth, glyphHeight } =
-    imageToAsciiFromImageElement(img, cols, fontFamily, displayFontSize);
+  // generate ASCII + metrics
+  const { ascii, cols: c, rows: r, glyphW, glyphH } =
+    imageToAsciiFromImageElement(img, cols, fontFamily);
 
-  // show ASCII text in <pre>
-  // remove trailing spaces on every row
+  // strip trailing spaces on each line so <pre> collapses to content width
   const trimmedAscii = ascii.replace(/ +$/gm, "");
+
+  // update the text preview
   asciiOutput.textContent = trimmedAscii;
   lastAsciiText = trimmedAscii;
-
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  // prepare canvas for PNG rendering
-  // split lines and trim final empty line if present
-  const lines = ascii.split("\n");
-  if (lines.length && lines[lines.length - 1] === "") lines.pop();
+  // ----------------------
+  // now render to canvas
+  // ----------------------
 
-  const maxLineLength = Math.max(...lines.map(l => l.length), 0);
+  const lines = trimmedAscii.split("\n");
+  // compute longest line in characters
+  const maxLineLen = Math.max(...lines.map(l => l.length), 0);
 
-  // compute target CSS pixel size
-  const cssWidth = Math.max(1, maxLineLength * glyphWidth);
-  const cssHeight = Math.max(1, lines.length * glyphHeight);
-
-  // handle DPR correctly: set canvas physical size then scale drawing context
-  const dpr = window.devicePixelRatio || 1;
-  asciiCanvas.width = Math.round(cssWidth * dpr);
-  asciiCanvas.height = Math.round(cssHeight * dpr);
-  asciiCanvas.style.width = `${cssWidth}px`;
-  asciiCanvas.style.height = `${cssHeight}px`;
+  // set canvas size based on longest line + rows
+  asciiCanvas.width = maxLineLen * glyphW;
+  asciiCanvas.height = lines.length * glyphH;
 
   const ctx = asciiCanvas.getContext("2d");
-  // reset transform and scale for DPR
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, asciiCanvas.width, asciiCanvas.height);
-  ctx.scale(dpr, dpr);
-
-  // draw background
   ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, cssWidth, cssHeight);
+  ctx.fillRect(0, 0, asciiCanvas.width, asciiCanvas.height);
 
-  // set font and draw each line horizontally centered using measured width
   ctx.fillStyle = "white";
+  ctx.font = `${glyphH}px ${fontFamily}`;
   ctx.textBaseline = "top";
-  ctx.font = `${displayFontSize}px ${fontFamily}`;
 
+  // draw each line centered horizontally
   for (let y = 0; y < lines.length; y++) {
     const line = lines[y] || "";
-    const lineWidthPx = Math.ceil(ctx.measureText(line).width);
-    const x = Math.round((cssWidth - lineWidthPx) / 2); // center horizontally
-    const yPos = y * glyphHeight;
-    ctx.fillText(line, x, yPos);
+    const linePx = Math.ceil(ctx.measureText(line).width);
+    const xOffset = Math.floor((asciiCanvas.width - linePx) / 2);
+    ctx.fillText(line, xOffset, y * glyphH);
   }
-
-  // store metrics for download
-  lastAsciiMetrics = { cssWidth, cssHeight, dpr };
 }
+
 
 // TXT download
 downloadTxtBtn.addEventListener("click", () => {
