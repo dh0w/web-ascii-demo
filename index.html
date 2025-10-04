@@ -1,51 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Image → ASCII (fixed)</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Image Converter</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <h1>Image → ASCII (fixed)</h1>
-    <p class="muted">Accurate aspect ratio using measured character metrics. No backend — runs in the browser.</p>
+  <div class="container">
+    <h1>ASCII Image Converter</h1>
 
-    <div class="controls">
-      <label class="file-label">
-        <input id="fileInput" type="file" accept="image/*">
-        Choose image
-      </label>
+    <input type="file" id="fileInput" accept="image/*">
+    <input type="number" id="colsInput" placeholder="Columns" value="100" min="10" max="600">
+    <select id="fontSelect">
+      <option value="monospace">Monospace</option>
+      <option value="Courier New">Courier New</option>
+      <option value="Consolas">Consolas</option>
+    </select>
+    <button id="convertBtn">Convert</button>
+    <button id="downloadTxtBtn" disabled>Download TXT</button>
+    <button id="downloadPngBtn" disabled>Download PNG</button>
 
-      <label class="small">
-        Columns:
-        <input id="colsInput" type="number" min="10" max="600" value="100">
-      </label>
-
-      <label class="small">
-        Font:
-        <select id="fontSelect">
-          <option value="Consolas, 'Courier New', monospace">Consolas</option>
-          <option value="'Courier New', monospace">Courier New</option>
-          <option value="Menlo, monospace">Menlo</option>
-          <option value="monospace">System monospace</option>
-        </select>
-      </label>
-
-      <button id="convertBtn">Convert</button>
-      <button id="downloadBtn" disabled>Download .txt</button>
-    </div>
-
-    <section class="output-area">
-      <div id="asciiWrapper" class="ascii-wrapper">
-        <pre id="asciiOutput" class="ascii-output" spellcheck="false"></pre>
-      </div>
-    </section>
-
-    <footer>
-      <small class="muted">Tip: increase Columns for more detail. The conversion is done locally — images are not uploaded.</small>
-    </footer>
-  </main>
+    <h2>Preview:</h2>
+    <pre id="asciiOutput"></pre>
+    <canvas id="asciiCanvas" style="display:none;"></canvas>
+  </div>
 
   <script src="script.js"></script>
 </body>
