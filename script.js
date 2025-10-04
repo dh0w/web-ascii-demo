@@ -25,7 +25,7 @@ function generateASCII(img) {
   const aspectRatio = img.height / img.width;
 
   // font characters are roughly twice as tall as wide, so apply scale factor
-  const adjustedHeight = Math.floor(width * aspectRatio * 0.55);
+  const adjustedHeight = Math.floor(width * aspectRatio * 0.8);
 
   canvas.width = width;
   canvas.height = adjustedHeight;
