@@ -62,49 +62,55 @@ async function convertSelectedFile() {
     return;
   }
 
-  // 1) load & decode
+  // 1) load image
   const img = new Image();
   img.src = URL.createObjectURL(file);
-  await img.decode().catch(() => { /* ignore decode warnings */ });
+  await img.decode().catch(() => {/* ignore */});
 
-  // 2) clamp cols & choose font
-  const cols       = Math.max(10, Math.min(600, parseInt(colsInput.value, 10) || 100));
+  // 2) clamp cols & pick font
+  const cols       = Math.max(10, Math.min(10000,
+                         parseInt(colsInput.value, 10) || 100));
   const fontFamily = fontSelect.value || "monospace";
 
-  // 3) generate ASCII text
-  const { ascii }       = imageToAsciiFromImageElement(img, cols);
-  const trimmedAscii    = ascii.replace(/ +$/gm, "");  // drop trailing spaces
-  lastAsciiText         = trimmedAscii;
+  // 3) generate raw ASCII + drop trailing spaces
+  const { ascii }    = imageToAsciiFromImageElement(img, cols);
+  const trimmedAscii = ascii.replace(/ +$/gm, "");
+  lastAsciiText      = trimmedAscii;
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  // 4) AUTO-SHRINK PREVIEW:
-  //    compute a font-size that keeps cols × charWidth ≤ 95% container width
-  const containerWidth = asciiOutput.parentElement.clientWidth;
-  const baseSize       = 10; // matches your default CSS pre font-size
+  // 4) compute a “previewSize” so that, at base, cols × charWidth ≤ 95% container
+  const containerW     = asciiOutput.parentElement.clientWidth * 0.95;
+  const baseSize       = 10; // matches your default pre font-size
   const baseMetrics    = measureGlyphMetrics(fontFamily, baseSize);
-  const scaleFactor    = Math.min(1, (containerWidth * 0.95) / (cols * baseMetrics.glyphWidth));
-  const previewSize    = Math.max(4, Math.floor(baseSize * scaleFactor));
+  const idealSize      = (containerW * baseSize) /
+                         (cols * baseMetrics.glyphWidth);
+  const previewSize    = Math.max(1, Math.min(14, Math.floor(idealSize)));
 
-  asciiOutput.style
-    .cssText = `
-      display: inline-block;
-      font-family: ${fontFamily}, monospace;
-      font-size: ${previewSize}px;
-      line-height: ${previewSize}px;
-      white-space: pre;
-    `;
+  // 5) apply text-preview styles
+  asciiOutput.style.display        = "inline-block";
+  asciiOutput.style.whiteSpace     = "pre";
+  asciiOutput.style.transformOrigin= "top left";
+  asciiOutput.style.fontFamily     = `${fontFamily}, monospace`;
+  asciiOutput.style.fontSize       = `${previewSize}px`;
+  asciiOutput.style.lineHeight     = `${previewSize}px`;
+  asciiOutput.style.transform      = "";       // reset any old scale
 
-  // 5) update the on-page text
+  // 6) set the text
   asciiOutput.textContent = trimmedAscii;
 
-  // 6) RENDER TO CANVAS FOR PNG (unchanged, still uses full resolution):
-  const lines       = trimmedAscii.split("\n").filter(l => l);
-  const { glyphWidth, glyphHeight } = measureGlyphMetrics(fontFamily, previewSize);
-  const maxLen      = Math.max(...lines.map(l => l.length));
-  const cssW        = maxLen * glyphWidth;
-  const cssH        = lines.length * glyphHeight;
-  const dpr         = window.devicePixelRatio || 1;
+  // 7) now measure and scale horizontally if still too wide
+  const smallMetrics = measureGlyphMetrics(fontFamily, previewSize);
+  const asciiW       = cols * smallMetrics.glyphWidth;
+  const scale        = Math.min(1, containerW / asciiW);
+  asciiOutput.style.transform = `scale(${scale})`;
+
+  // 8) finally render your full-res PNG in the canvas (unchanged)
+  const lines = trimmedAscii.split("\n").filter(l => l.length);
+  const { glyphWidth, glyphHeight } = smallMetrics;
+  const cssW = Math.max(1, Math.max(...lines.map(l => l.length)) * glyphWidth);
+  const cssH = Math.max(1, lines.length * glyphHeight);
+  const dpr  = window.devicePixelRatio || 1;
 
   asciiCanvas.width  = Math.round(cssW * dpr);
   asciiCanvas.height = Math.round(cssH * dpr);
@@ -112,22 +118,23 @@ async function convertSelectedFile() {
   asciiCanvas.style.height = `${cssH}px`;
 
   const ctx = asciiCanvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle   = "black";
-  ctx.fillRect(0, 0, cssW, cssH);
-  ctx.font        = `${previewSize}px ${fontFamily}`;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle = "black";
+  ctx.fillRect(0,0,cssW,cssH);
+  ctx.font = `${previewSize}px ${fontFamily}`;
   ctx.textBaseline = "top";
-  ctx.fillStyle   = "white";
+  ctx.fillStyle = "white";
 
   lines.forEach((line, y) => {
-    const w      = Math.ceil(ctx.measureText(line).width);
-    const xOff   = Math.round((cssW - w) / 2);
-    const yOff   = y * glyphHeight;
+    const w    = Math.ceil(ctx.measureText(line).width);
+    const xOff = Math.round((cssW - w) / 2);
+    const yOff = y * glyphHeight;
     ctx.fillText(line, xOff, yOff);
   });
 
   lastAsciiMetrics = { cssW, cssH, dpr };
 }
+
 
 // TXT download
 downloadTxtBtn.addEventListener("click", () => {
