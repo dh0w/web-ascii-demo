@@ -1,4 +1,3 @@
-// ASCII converter — robust measurement-based aspect fix
 const CHARSET = "@#%*+=-:. "; // dark -> light
 
 const fileInput = document.getElementById("fileInput");
@@ -11,8 +10,10 @@ const downloadPngBtn = document.getElementById("downloadPngBtn");
 const asciiCanvas = document.getElementById("asciiCanvas");
 
 let lastAsciiText = "";
+let lastAsciiMetrics = null;
 
-function measureGlyph(fontFamily, testFontSize = 120, char = "@") {
+// measure glyph width/height for a given font
+function measureGlyph(fontFamily, testFontSize = 140, char = "@") {
   const pad = Math.ceil(testFontSize * 0.5);
   const cvs = document.createElement("canvas");
   const size = testFontSize * 4;
@@ -29,6 +30,7 @@ function measureGlyph(fontFamily, testFontSize = 120, char = "@") {
   const data = ctx.getImageData(0, 0, cvs.width, cvs.height).data;
   let minX = cvs.width, minY = cvs.height, maxX = 0, maxY = 0;
   let found = false;
+
   for (let y = 0; y < cvs.height; y++) {
     for (let x = 0; x < cvs.width; x++) {
       const i = (y * cvs.width + x) * 4;
@@ -42,13 +44,16 @@ function measureGlyph(fontFamily, testFontSize = 120, char = "@") {
       }
     }
   }
+
   if (!found) {
     const w = Math.ceil(ctx.measureText(char).width);
     return { glyphWidth: w, glyphHeight: testFontSize };
   }
+
   return { glyphWidth: maxX - minX + 1, glyphHeight: maxY - minY + 1 };
 }
 
+// generate ASCII text and compute metrics
 function imageToAsciiFromImageElement(imgElement, cols, fontFamily) {
   const measurement = measureGlyph(fontFamily, 140, "@");
   const glyphW = measurement.glyphWidth;
@@ -57,8 +62,11 @@ function imageToAsciiFromImageElement(imgElement, cols, fontFamily) {
 
   const imgW = imgElement.naturalWidth;
   const imgH = imgElement.naturalHeight;
+
+  // compute rows based on image aspect ratio and glyph aspect
   const rows = Math.max(1, Math.round(cols * glyphAspect * (imgH / imgW)));
 
+  // draw resized image into small canvas
   const cvs = document.createElement("canvas");
   cvs.width = cols;
   cvs.height = rows;
@@ -67,6 +75,7 @@ function imageToAsciiFromImageElement(imgElement, cols, fontFamily) {
 
   const imageData = ctx.getImageData(0, 0, cols, rows).data;
   let ascii = "";
+
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = (y * cols + x) * 4;
@@ -80,26 +89,31 @@ function imageToAsciiFromImageElement(imgElement, cols, fontFamily) {
   }
 
   lastAsciiText = ascii;
+  lastAsciiMetrics = { cols, rows, glyphW, glyphH, fontFamily };
 
-  const displayFontSize = 10;
+  // dynamically scale <pre> font size to fit width (max ~90% of container)
+  const containerWidth = asciiOutput.parentElement.clientWidth;
+  const maxFontSize = Math.floor(containerWidth / cols);
+  const displayFontSize = Math.min(14, maxFontSize); // cap at 14px
   const scaleFactor = displayFontSize / 140;
-  const displayGlyphW = Math.max(1, Math.round(glyphW * scaleFactor));
   const displayGlyphH = Math.max(1, Math.round(glyphH * scaleFactor));
 
   asciiOutput.style.fontFamily = fontFamily;
   asciiOutput.style.fontSize = `${displayFontSize}px`;
   asciiOutput.style.lineHeight = `${displayGlyphH}px`;
-  asciiOutput.style.letterSpacing = `0px`;
+  asciiOutput.style.letterSpacing = "0px";
 
-  return { ascii, cols, rows, glyphW: displayGlyphW, glyphH: displayGlyphH };
+  return { ascii, cols, rows, glyphW: displayGlyphH, glyphH: displayGlyphH };
 }
 
+// handle file conversion
 async function convertSelectedFile() {
   const file = fileInput.files[0];
   if (!file) {
     alert("Please choose an image file.");
     return;
   }
+
   const cols = Math.max(10, Math.min(600, parseInt(colsInput.value, 10) || 100));
   const fontFamily = fontSelect.value;
 
@@ -113,7 +127,7 @@ async function convertSelectedFile() {
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  // Render ASCII to canvas for PNG download
+  // render ASCII to canvas for PNG
   asciiCanvas.width = c * glyphW;
   asciiCanvas.height = r * glyphH;
   const ctx = asciiCanvas.getContext("2d");
@@ -129,13 +143,7 @@ async function convertSelectedFile() {
   }
 }
 
-convertBtn.addEventListener("click", () => {
-  convertSelectedFile().catch(err => {
-    console.error(err);
-    alert("Conversion error: " + (err && err.message ? err.message : err));
-  });
-});
-
+// TXT download
 downloadTxtBtn.addEventListener("click", () => {
   if (!lastAsciiText) return;
   const blob = new Blob([lastAsciiText], { type: "text/plain;charset=utf-8" });
@@ -149,8 +157,9 @@ downloadTxtBtn.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
+// PNG download
 downloadPngBtn.addEventListener("click", () => {
-  if (!lastAsciiText) return;
+  if (!lastAsciiMetrics) return;
   const url = asciiCanvas.toDataURL("image/png");
   const a = document.createElement("a");
   a.href = url;
@@ -158,4 +167,12 @@ downloadPngBtn.addEventListener("click", () => {
   document.body.appendChild(a);
   a.click();
   a.remove();
+});
+
+// convert button
+convertBtn.addEventListener("click", () => {
+  convertSelectedFile().catch(err => {
+    console.error(err);
+    alert("Conversion error: " + (err && err.message ? err.message : err));
+  });
 });
