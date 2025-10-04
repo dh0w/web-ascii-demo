@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image to ASCII Art</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>🖼️ Image to ASCII Art</h1>
+    <p class="subtitle">Upload an image and watch it turn into ASCII magic!</p>
+
+    <label class="upload-btn">
+      <input type="file" id="fileInput" accept="image/*" hidden />
+      Choose Image
+    </label>
+
+    <div class="ascii-container">
+      <pre id="asciiOutput" class="ascii-output"></pre>
+    </div>
+
+    <footer>
+      <p>Made with ❤️ using HTML, CSS, and JS</p>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
