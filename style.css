@@ -1,79 +1,116 @@
-:root {
-  --bg-color: #0d1117;
-  --text-color: #e6edf3;
-  --accent-color: #58a6ff;
-  --font-family: "Courier New", monospace;
+:root{
+  --bg:#0b0f14;
+  --panel:#0f1720;
+  --muted:#9aa6b2;
+  --accent:#58a6ff;
+  --white:#e6edf3;
+  --mono: "Courier New", monospace;
 }
 
-* {
-  box-sizing: border-box;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--white);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:28px;
 }
 
-body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: var(--font-family);
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
+.container{
+  width:100%;
+  max-width:960px;
+  text-align:center;
 }
 
-.container {
-  max-width: 800px;
-  width: 100%;
-  text-align: center;
-  padding: 2rem;
+h1{margin:0 0 6px;color:var(--accent);font-weight:600}
+.muted{color:var(--muted);margin:0 0 18px}
+
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-bottom:14px;
+  align-items:center;
 }
 
-h1 {
-  margin-bottom: 0.3rem;
-  color: var(--accent-color);
+.file-label{
+  background:var(--accent);
+  color:#fff;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+.file-label input{display:none}
+
+.small{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  color:var(--muted);
+  font-size:0.95rem;
 }
 
-.subtitle {
-  margin-bottom: 1.5rem;
-  color: #8b949e;
+.small input[type="number"]{
+  width:84px;
+  padding:6px 8px;
+  border-radius:6px;
+  border:1px solid #273139;
+  background:#0b1115;
+  color:var(--white);
 }
 
-.upload-btn {
-  display: inline-block;
-  background-color: var(--accent-color);
-  color: #fff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  user-select: none;
+.small select{
+  padding:6px 8px;
+  border-radius:6px;
+  background:#0b1115;color:var(--white);
+  border:1px solid #273139;
 }
 
-.upload-btn:hover {
-  background-color: #4093ff;
+button{
+  padding:8px 12px;
+  border-radius:8px;
+  border:0;
+  cursor:pointer;
+  background:#1f7fe5;color:white;font-weight:600;
+}
+button:disabled{opacity:0.45;cursor:not-allowed}
+
+.output-area{
+  display:flex;
+  justify-content:center;
+  margin-top:8px;
 }
 
-.ascii-container {
-  margin-top: 1.5rem;
-  border: 1px solid #30363d;
-  border-radius: 8px;
-  background-color: #161b22;
-  padding: 1rem;
-  overflow-x: auto;
-  white-space: pre;
+.ascii-wrapper{
+  max-width:100%;
+  width:100%;
+  background:#000;
+  border-radius:8px;
+  padding:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.6);
+  overflow:auto;
+  border:1px solid #1f2730;
 }
 
-.ascii-output {
-  font-family: var(--font-family);
-  font-size: 7px; /* adjust to make thinner */
-  line-height: 6px;
-  white-space: pre;
-  margin: 0;
+.ascii-output{
+  margin:0;
+  white-space:pre;
+  text-align:left;
+  color:var(--white);
+  font-family: Consolas, "Courier New", monospace;
+  /* font-size & line-height are set dynamically from script.js to match measured glyph metrics */
+  font-weight:400;
+  letter-spacing:0px;
 }
 
-footer {
-  margin-top: 2rem;
-  font-size: 0.85rem;
-  color: #8b949e;
+/* Responsive tweaks */
+@media (max-width:600px){
+  .controls{gap:6px}
+  .small input[type="number"]{width:64px}
 }

@@ -1,27 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image to ASCII Art</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Image → ASCII (fixed)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="container">
-    <h1>🖼️ Image to ASCII Art</h1>
-    <p class="subtitle">Upload an image and watch it turn into ASCII magic!</p>
+    <h1>Image → ASCII (fixed)</h1>
+    <p class="muted">Accurate aspect ratio using measured character metrics. No backend — runs in the browser.</p>
 
-    <label class="upload-btn">
-      <input type="file" id="fileInput" accept="image/*" hidden />
-      Choose Image
-    </label>
+    <div class="controls">
+      <label class="file-label">
+        <input id="fileInput" type="file" accept="image/*">
+        Choose image
+      </label>
 
-    <div class="ascii-container">
-      <pre id="asciiOutput" class="ascii-output"></pre>
+      <label class="small">
+        Columns:
+        <input id="colsInput" type="number" min="10" max="600" value="100">
+      </label>
+
+      <label class="small">
+        Font:
+        <select id="fontSelect">
+          <option value="Consolas, 'Courier New', monospace">Consolas</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="Menlo, monospace">Menlo</option>
+          <option value="monospace">System monospace</option>
+        </select>
+      </label>
+
+      <button id="convertBtn">Convert</button>
+      <button id="downloadBtn" disabled>Download .txt</button>
     </div>
 
+    <section class="output-area">
+      <div id="asciiWrapper" class="ascii-wrapper">
+        <pre id="asciiOutput" class="ascii-output" spellcheck="false"></pre>
+      </div>
+    </section>
+
     <footer>
-      <p>Made with ❤️ using HTML, CSS, and JS</p>
+      <small class="muted">Tip: increase Columns for more detail. The conversion is done locally — images are not uploaded.</small>
     </footer>
   </main>
 
