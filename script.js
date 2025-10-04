@@ -1,40 +1,52 @@
-const charset = "@#%*+=-:. ";
-const input = document.getElementById("fileInput");
-const output = document.getElementById("asciiOutput");
+const CHARSET = "@#%*+=-:. ";
+const output = document.getElementById('asciiOutput');
+const input = document.getElementById('fileInput');
+const btn = document.getElementById('convertBtn');
 
-input.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+btn.addEventListener('click', () => {
+  const file = input.files[0];
+  if (!file) return alert("Please select an image first!");
 
-  const img = new Image();
-  img.src = URL.createObjectURL(file);
-  await img.decode();
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => generateASCII(img);
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
 
-  // Canvas setup
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
+function generateASCII(img) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
 
-  const width = 120; // Adjust for output size
+  // target width controls resolution
+  const width = 100;
   const aspectRatio = img.height / img.width;
-  const scale = 0.45; // Adjust vertical scaling to fix stretch
-  const height = Math.floor(width * aspectRatio * scale);
+
+  // font characters are roughly twice as tall as wide, so apply scale factor
+  const adjustedHeight = Math.floor(width * aspectRatio * 0.55);
 
   canvas.width = width;
-  canvas.height = height;
-  ctx.drawImage(img, 0, 0, width, height);
+  canvas.height = adjustedHeight;
 
-  const data = ctx.getImageData(0, 0, width, height).data;
+  ctx.drawImage(img, 0, 0, width, adjustedHeight);
+  const imageData = ctx.getImageData(0, 0, width, adjustedHeight).data;
 
   let ascii = "";
-  for (let y = 0; y < height; y++) {
+  for (let y = 0; y < adjustedHeight; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      const c = charset[Math.floor(gray / (256 / charset.length))];
-      ascii += c;
+      const r = imageData[i];
+      const g = imageData[i + 1];
+      const b = imageData[i + 2];
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+      const charIndex = Math.floor((gray / 255) * (CHARSET.length - 1));
+      ascii += CHARSET[CHARSET.length - 1 - charIndex];
     }
     ascii += "\n";
   }
 
   output.textContent = ascii;
-});
+}
