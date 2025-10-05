@@ -116,8 +116,9 @@ async function convertSelectedFile() {
     return;
   }
 
-  // Use actual columns width instead of max line length
-  const cssW   = cols * glyphW;
+  // Calculate width based on the longest trimmed line
+  const maxLen = Math.max(...lines.map(l => l.length));
+  const cssW   = maxLen * glyphW;
   const cssH   = lines.length * defaultFS;
   const dpr    = window.devicePixelRatio || 1;
 
