@@ -1,59 +1,251 @@
-/* style.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-/* Base page setup */
 body {
-  font-family: Arial, sans-serif;
-  background: #111;
-  color: #eee;
-  text-align: center;
-  padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: #f8f9fa;
+  color: #2c3e50;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
-  max-width: 900px;
+  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+  padding: 3rem 2rem;
+  flex: 1;
 }
 
-/* Form controls */
-input,
-select,
-button {
-  margin: 0.5rem;
-  padding: 0.3rem 0.6rem;
+h1 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  text-align: center;
+  color: #6c757d;
+  margin-bottom: 3rem;
+  font-size: 1.1rem;
+  font-weight: 300;
+}
+
+.controls {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 2rem;
+}
+
+.control-group {
+  margin-bottom: 1.5rem;
+}
+
+.control-group:last-child {
+  margin-bottom: 0;
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Custom file input */
+.file-input-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+.file-input-wrapper input[type=file] {
+  position: absolute;
+  left: -9999px;
+}
+
+.file-input-label {
+  display: block;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.file-input-label:hover {
+  border-color: #495057;
+  background: #e9ecef;
+}
+
+.file-input-label.has-file {
+  border-color: #28a745;
+  background: #d4edda;
+  color: #155724;
+}
+
+/* Slider */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.slider-wrapper {
+  flex: 1;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e9ecef;
+  outline: none;
+  transition: background 0.3s ease;
+}
+
+input[type="range"]:hover {
+  background: #dee2e6;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #2c3e50;
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #495057;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: #2c3e50;
+  transform: scale(1.1);
+}
+
+.slider-value {
+  min-width: 50px;
+  text-align: right;
+  font-weight: 600;
+  color: #495057;
   font-size: 1rem;
 }
 
-/*  
-  The .preview DIV is your fixed viewport: 
-  - fixed height (no matter the cols)  
-  - overflow hidden (no scrollbars)  
-  - position relative so we can absolutely position the <pre> inside  
-*/
-/*  
-  The .preview DIV is a fixed-size, centered viewport.  
-  We use flexbox so its child <pre> is always centered both horizontally and vertically.
-*/
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+button {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#convertBtn {
+  background: #495057;
+  color: white;
+}
+
+#convertBtn:hover:not(:disabled) {
+  background: #2c3e50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(73, 80, 87, 0.3);
+}
+
+#downloadTxtBtn, #downloadPngBtn {
+  background: white;
+  color: #495057;
+  border: 2px solid #dee2e6;
+}
+
+#downloadTxtBtn:hover:not(:disabled), 
+#downloadPngBtn:hover:not(:disabled) {
+  border-color: #495057;
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Preview */
+.preview-section {
+  margin-top: 2rem;
+}
+
+.preview-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .preview {
   width: 100%;
-  max-width: 900px;
-  height: 50vh;            /* adjust as needed */
-  margin: 1rem auto;
+  max-width: 100%;
+  height: 60vh;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-/*  
-  The ASCII <pre> itself:  
-  - inline-block so flexbox can center it  
-  - transform-origin at center so scale keeps it centered  
-*/
 pre#asciiOutput {
-  background: #000;
-  color: #fff;
+  background: transparent;
+  color: #1a1a1a;
   font-family: monospace;
-  font-size: 10px;       /* must match defaultFS in script.js */
+  font-size: 10px;
   line-height: 10px;
   white-space: pre;
   padding: 0;
@@ -61,7 +253,38 @@ pre#asciiOutput {
   transform-origin: center center;
 }
 
-/* Hide until first conversion */
-pre#asciiOutput:empty {
+pre#asciiOutput:empty::after {
+  content: 'Your ASCII art will appear here';
+  color: #adb5bd;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 1rem;
+  white-space: normal;
+}
+
+/* Footer */
+.footer {
+  background: white;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.9rem;
+  border-top: 1px solid #e9ecef;
+}
+
+canvas {
   display: none;
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
 }
