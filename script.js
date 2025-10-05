@@ -24,8 +24,13 @@ function measureGlyphWidth(fontFamily, fontSizePx) {
  * - if alpha < 255 → space
  * - else map luminance → a CHARSET character 
  */
+/**
+ * Downsample the image to cols×rows, then for each pixel:
+ * - if alpha === 0 → space
+ * - else map luminance → a CHARSET character 
+ */
 function imageToAsciiFromImageElement(img, cols) {
-  // estimate rows to preserve aspect
+  // estimate rows so the ASCII grid preserves aspect
   const testW  = measureGlyphWidth(fontSelect.value, 10);
   const aspect = testW / 10;
   const rows   = Math.max(
@@ -48,13 +53,16 @@ function imageToAsciiFromImageElement(img, cols) {
       const i = (y * cols + x) * 4;
       const a = data[i + 3];
 
-      // **NEW:** treat *any* non-fully-opaque pixel as blank
-      if (a !== 255) {
+      // ←── UPDATED LINE ──→
+      // Only pixels with alpha *exactly* 0 become blank.
+      if (a === 0) {
         ascii += " ";
       } else {
-        const r    = data[i], g = data[i + 1], b = data[i + 2];
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        const idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
+        const r    = data[i],
+              g    = data[i + 1],
+              b    = data[i + 2],
+              gray = 0.299 * r + 0.587 * g + 0.114 * b,
+              idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
         ascii += CHARSET[CHARSET.length - 1 - idx];
       }
     }
@@ -63,6 +71,7 @@ function imageToAsciiFromImageElement(img, cols) {
 
   return { ascii, cols, rows };
 }
+
 
 async function convertSelectedFile() {
   const file = fileInput.files[0];
