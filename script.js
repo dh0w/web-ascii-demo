@@ -11,9 +11,7 @@ const asciiCanvas    = document.getElementById("asciiCanvas");
 let lastAsciiText    = "";
 let lastAsciiMetrics = null;
 
-/**
- * Measure the pixel-width of “@” at a given font size.
- */
+/** Measure the pixel‐width of “@” at a given font‐size */
 function measureGlyphWidth(fontFamily, fontSizePx) {
   const cvs = document.createElement("canvas");
   const ctx = cvs.getContext("2d");
@@ -21,11 +19,11 @@ function measureGlyphWidth(fontFamily, fontSizePx) {
   return Math.ceil(ctx.measureText("@").width);
 }
 
-/**
- * Downsample image to cols×rows blocks, sample alpha and luminance,
- * build ASCII string with transparent pixels → space.
+/** 
+ * Downsample to cols×rows, sample alpha+luminance, build ASCII string.
  */
 function imageToAsciiFromImageElement(img, cols) {
+  // pick rows to roughly preserve aspect ratio
   const testW  = measureGlyphWidth(fontSelect.value, 10);
   const aspect = testW / 10;
   const rows   = Math.max(
@@ -33,6 +31,7 @@ function imageToAsciiFromImageElement(img, cols) {
     Math.round(cols * aspect * (img.naturalHeight / img.naturalWidth))
   );
 
+  // draw tiny canvas
   const tmp = document.createElement("canvas");
   tmp.width  = cols;
   tmp.height = rows;
@@ -47,11 +46,13 @@ function imageToAsciiFromImageElement(img, cols) {
       const i = (y * cols + x) * 4;
       const a = data[i + 3];
       if (a === 0) {
-        ascii += " ";
+        ascii += " ";                         // transparent → space
       } else {
-        const r    = data[i], g = data[i + 1], b = data[i + 2];
-        const gray = 0.299*r + 0.587*g + 0.114*b;
-        const idx  = Math.floor((gray/255)*(CHARSET.length - 1));
+        const r    = data[i],
+              g    = data[i + 1],
+              b    = data[i + 2],
+              gray = 0.299 * r + 0.587 * g + 0.114 * b,
+              idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
         ascii += CHARSET[CHARSET.length - 1 - idx];
       }
     }
@@ -68,61 +69,68 @@ async function convertSelectedFile() {
     return;
   }
 
+  // load image
   const img = new Image();
   img.src = URL.createObjectURL(file);
-  await img.decode().catch(() => {});
+  await img.decode().catch(() => { /* ignore */ });
 
-  // clamp to [1…1000], default 250
+  // clamp columns [1…1000], default 250
   const cols       = Math.max(1, Math.min(1000, parseInt(colsInput.value, 10) || 250));
   const fontFamily = fontSelect.value || "monospace";
 
+  // raw ASCII + trim trailing spaces
   const { ascii, rows } = imageToAsciiFromImageElement(img, cols);
   const trimmedAscii    = ascii.replace(/ +$/gm, "");
   lastAsciiText         = trimmedAscii;
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  // ————— SCALE PREVIEW TO FIT BOTH WIDTH & HEIGHT —————
-  const defaultFS = 10;                      // matches style.css
+  // ——— SCALE & CENTER THE <pre> PREVIEW ———
+  const defaultFS = 10;                                // must match style.css
   const glyphW    = measureGlyphWidth(fontFamily, defaultFS);
-  const glyphH    = defaultFS;               // line-height = font-size
   const asciiW    = cols * glyphW;
-  const asciiH    = rows * glyphH;
+  const asciiH    = rows * defaultFS;
 
-  // container is the .preview div
+  // the .preview container
   const container = asciiOutput.parentElement;
   const cw        = container.clientWidth;
   const ch        = container.clientHeight;
 
-  const scaleX = cw / asciiW;
-  const scaleY = ch / asciiH;
-  const scale  = Math.min(scaleX, scaleY);
+  // scale so ASCII fits both width & height
+  const scale = Math.min(cw / asciiW, ch / asciiH);
 
+  // apply all preview styles in one go
   asciiOutput.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform-origin: top center;
+    transform: scale(${scale});
+    
     font-family: ${fontFamily}, monospace;
     font-size: ${defaultFS}px;
     line-height: ${defaultFS}px;
     white-space: pre;
-    transform-origin: center top;
-    transform: scale(${scale});
   `;
+
+  // set the text
   asciiOutput.textContent = trimmedAscii;
 
-  // ————— FULL-RES PNG RENDER (unchanged) —————
-  const lines = trimmedAscii.split("\n").filter(l => l.length);
+  // ——— FULL-RES PNG RENDER (unchanged) ———
+  const lines = trimmedAscii.split("\n").filter(l => l);
   if (!lines.length) {
     asciiCanvas.width = asciiCanvas.height = 1;
-    lastAsciiMetrics = { cssW:1, cssH:1, dpr:window.devicePixelRatio||1 };
+    lastAsciiMetrics = { cssWidth:1, cssHeight:1, dpr:window.devicePixelRatio||1 };
     return;
   }
 
   const maxLen = Math.max(...lines.map(l => l.length));
   const cssW   = maxLen * glyphW;
-  const cssH   = lines.length * glyphH;
+  const cssH   = lines.length * defaultFS;
   const dpr    = window.devicePixelRatio || 1;
 
-  asciiCanvas.width    = Math.round(cssW * dpr);
-  asciiCanvas.height   = Math.round(cssH * dpr);
+  asciiCanvas.width  = Math.round(cssW * dpr);
+  asciiCanvas.height = Math.round(cssH * dpr);
   asciiCanvas.style.width  = `${cssW}px`;
   asciiCanvas.style.height = `${cssH}px`;
 
@@ -131,21 +139,21 @@ async function convertSelectedFile() {
   ctx.fillStyle = "black";
   ctx.fillRect(0,0,cssW,cssH);
 
-  ctx.font = `${defaultFS}px ${fontFamily}`;
+  ctx.font         = `${defaultFS}px ${fontFamily}`;
   ctx.textBaseline = "top";
-  ctx.fillStyle = "white";
+  ctx.fillStyle    = "white";
 
   lines.forEach((line, y) => {
     const w    = Math.ceil(ctx.measureText(line).width);
-    const xOff = Math.round((cssW - w)/2);
-    const yOff = y * glyphH;
+    const xOff = Math.round((cssW - w) / 2);
+    const yOff = y * defaultFS;
     ctx.fillText(line, xOff, yOff);
   });
 
-  lastAsciiMetrics = { cssW, cssH, dpr };
+  lastAsciiMetrics = { cssWidth: cssW, cssHeight: cssH, dpr };
 }
 
-// hooks
+// wire up buttons
 convertBtn.addEventListener("click", () =>
   convertSelectedFile().catch(e => alert("Conversion error: " + e.message))
 );
@@ -168,5 +176,5 @@ downloadPngBtn.addEventListener("click", () => {
   a.click();
 });
 
-// hide empty preview
+// hide empty preview on first load
 asciiOutput.textContent = "";

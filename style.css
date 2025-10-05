@@ -24,36 +24,42 @@ button {
 }
 
 /*  
-  Preview viewport: fixed width/height, centered, hides overflow,
-  prevents page scroll and shifting when ASCII is scaled.
+  The .preview DIV is your fixed viewport: 
+  - fixed height (no matter the cols)  
+  - overflow hidden (no scrollbars)  
+  - position relative so we can absolutely position the <pre> inside  
 */
 .preview {
   width: 100%;
   max-width: 900px;
-  height: 50vh;              /* adjust as needed: fixed height */
-  margin: 1rem auto;         /* center horizontally + vertical gap */
-  overflow: hidden;          
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  height: 50vh;            /* adjust as you like */
+  margin: 1rem auto;
+  overflow: hidden;
+  position: relative;
 }
 
 /*  
-  ASCII <pre> itself: 10px monospace font, no padding,
-  transform-origin at top center so scaling looks centered.
+  The ASCII <pre> itself:  
+  - absolute at top center  
+  - 10px monospace font / line-height (our “base” size)  
+  - transform-origin at top center so scale() always stays centered  
 */
 pre#asciiOutput {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform-origin: top center;
+  
   background: #000;
   color: #fff;
   font-family: monospace;
-  font-size: 10px;           /* matches defaultFS in script.js */
-  line-height: 10px;
+  font-size: 10px;     /* must match defaultFS in script.js */
+  line-height: 10px;   /* ditto */
   white-space: pre;
   padding: 0;
-  transform-origin: center top;
 }
 
-/* Hide the empty <pre> until first conversion */
+/* Hide the empty <pre> on first load */
 pre#asciiOutput:empty {
   display: none;
 }
