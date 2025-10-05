@@ -38,6 +38,8 @@ fileInput.addEventListener("change", (e) => {
   }
 });
 
+
+/** Measure pixel‐width of "@" at a given font‐size */
 function measureGlyphWidth(fontFamily, fontSizePx) {
   const cvs = document.createElement("canvas");
   const ctx = cvs.getContext("2d");
@@ -45,21 +47,31 @@ function measureGlyphWidth(fontFamily, fontSizePx) {
   return Math.ceil(ctx.measureText("@").width);
 }
 
+/** 
+ * Downsample the image to cols×rows, then for each pixel:
+ * - Blend transparency with white background
+ * - Map luminance → a CHARSET character 
+ */
 function imageToAsciiFromImageElement(img, cols) {
-  const testW  = measureGlyphWidth("monospace", 10);
+  // estimate rows to preserve aspect (adjusted ratio for better circles)
+  const testW  = measureGlyphWidth(fontSelect.value, 10);
   const aspect = testW / 10;
   const rows   = Math.max(
     1,
     Math.round(cols * aspect * (img.naturalHeight / img.naturalWidth) * 0.95)
   );
 
+  // draw tiny offscreen canvas with white background
   const tmp = document.createElement("canvas");
   tmp.width  = cols;
   tmp.height = rows;
   const tctx = tmp.getContext("2d");
   
+  // Fill with white background first
   tctx.fillStyle = "white";
   tctx.fillRect(0, 0, cols, rows);
+  
+  // Draw image on top (transparency will blend with white)
   tctx.drawImage(img, 0, 0, cols, rows);
 
   const data = tctx.getImageData(0, 0, cols, rows).data;
@@ -70,6 +82,7 @@ function imageToAsciiFromImageElement(img, cols) {
       const i = (y * cols + x) * 4;
       const r = data[i], g = data[i + 1], b = data[i + 2];
       
+      // Calculate luminance from blended color
       const gray = 0.299 * r + 0.587 * g + 0.114 * b;
       const idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
       ascii += CHARSET[CHARSET.length - 1 - idx];
@@ -91,23 +104,26 @@ async function convertSelectedFile() {
   img.src = URL.createObjectURL(file);
   await img.decode().catch(() => {});
 
-  const cols = parseInt(resolutionSlider.value, 10);
-  const fontFamily = "monospace";
+  // clamp columns [1…1000], default 250
+  const cols       = Math.max(1, Math.min(1000, parseInt(colsInput.value, 10) || 250));
+  const fontFamily = fontSelect.value || "monospace";
 
+  // generate & trim ASCII
   const { ascii, rows } = imageToAsciiFromImageElement(img, cols);
-  const trimmedAscii = ascii.replace(/ +$/gm, "");
-  lastAsciiText = trimmedAscii;
+  const trimmedAscii    = ascii.replace(/ +$/gm, "");
+  lastAsciiText         = trimmedAscii;
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  const defaultFS = 10;
-  const glyphW = measureGlyphWidth(fontFamily, defaultFS);
-  const asciiW = cols * glyphW;
-  const asciiH = rows * defaultFS;
+  // — scale & center preview in its fixed .preview box —
+  const defaultFS = 10;  // must match your style.css
+  const glyphW    = measureGlyphWidth(fontFamily, defaultFS);
+  const asciiW    = cols * glyphW;
+  const asciiH    = rows * defaultFS;
   const container = asciiOutput.parentElement;
-  const cw = container.clientWidth;
-  const ch = container.clientHeight;
-  const scale = Math.min(cw / asciiW, ch / asciiH);
+  const cw        = container.clientWidth;
+  const ch        = container.clientHeight;
+  const scale     = Math.min(cw / asciiW, ch / asciiH);
 
   asciiOutput.style.cssText = `
     font-family: ${fontFamily}, monospace;
@@ -116,13 +132,10 @@ async function convertSelectedFile() {
     white-space: pre;
     transform-origin: center center;
     transform: scale(${scale});
-    display: inline-block;
   `;
   asciiOutput.textContent = trimmedAscii;
 
-  // Update wrapper to fit content
-  previewWrapper.style.display = 'inline-block';
-
+  // — render full-res PNG —
   const lines = trimmedAscii.split("\n").filter(l => l);
   if (!lines.length) {
     asciiCanvas.width = asciiCanvas.height = 1;
@@ -130,9 +143,11 @@ async function convertSelectedFile() {
     return;
   }
 
+  // Find the longest line and pad all lines to that length
   const maxLen = Math.max(...lines.map(l => l.length));
   const paddedLines = lines.map(line => line.padEnd(maxLen, ' '));
   
+  // Measure the actual pixel width of the longest line
   const tmpCanvas = document.createElement("canvas");
   const tmpCtx = tmpCanvas.getContext("2d");
   tmpCtx.font = `${defaultFS}px ${fontFamily}`;
@@ -147,12 +162,12 @@ async function convertSelectedFile() {
 
   const ctx = asciiCanvas.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "white";
+  ctx.fillStyle = "black";
   ctx.fillRect(0, 0, cssW, cssH);
 
-  ctx.font = `${defaultFS}px ${fontFamily}`;
+  ctx.font         = `${defaultFS}px ${fontFamily}`;
   ctx.textBaseline = "top";
-  ctx.fillStyle = "black";
+  ctx.fillStyle    = "white";
 
   paddedLines.forEach((line, y) => {
     const yOff = y * defaultFS;
@@ -162,6 +177,7 @@ async function convertSelectedFile() {
   lastAsciiMetrics = { cssWidth: cssW, cssHeight: cssH, dpr };
 }
 
+// wire up buttons
 convertBtn.addEventListener("click", () =>
   convertSelectedFile().catch(e => alert("Conversion error: " + e.message))
 );
@@ -169,8 +185,8 @@ convertBtn.addEventListener("click", () =>
 downloadTxtBtn.addEventListener("click", () => {
   if (!lastAsciiText) return;
   const blob = new Blob([lastAsciiText], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
   a.download = "ascii.txt";
   a.click();
 });
@@ -178,10 +194,11 @@ downloadTxtBtn.addEventListener("click", () => {
 downloadPngBtn.addEventListener("click", () => {
   if (!lastAsciiMetrics) return;
   const url = asciiCanvas.toDataURL("image/png");
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "ascii.png";
+  const a   = document.createElement("a");
+  a.href    = url;
+  a.download= "ascii.png";
   a.click();
 });
 
+// hide empty preview on startup
 asciiOutput.textContent = "";
