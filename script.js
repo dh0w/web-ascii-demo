@@ -72,55 +72,51 @@ async function convertSelectedFile() {
   // load image
   const img = new Image();
   img.src = URL.createObjectURL(file);
-  await img.decode().catch(() => { /* ignore */ });
+  await img.decode().catch(() => {});
 
-  // clamp columns [1…1000], default 250
+  // clamp columns and pick font
   const cols       = Math.max(1, Math.min(1000, parseInt(colsInput.value, 10) || 250));
   const fontFamily = fontSelect.value || "monospace";
 
-  // raw ASCII + trim trailing spaces
+  // generate ASCII
   const { ascii, rows } = imageToAsciiFromImageElement(img, cols);
   const trimmedAscii    = ascii.replace(/ +$/gm, "");
   lastAsciiText         = trimmedAscii;
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  // ——— SCALE & CENTER THE <pre> PREVIEW ———
-  const defaultFS = 10;                                // must match style.css
+  // ——— SCALE & CENTER via flexbox ———
+  const defaultFS = 10;  // must match style.css
   const glyphW    = measureGlyphWidth(fontFamily, defaultFS);
   const asciiW    = cols * glyphW;
   const asciiH    = rows * defaultFS;
 
-  // the .preview container
+  // measure viewport
   const container = asciiOutput.parentElement;
   const cw        = container.clientWidth;
   const ch        = container.clientHeight;
 
-  // scale so ASCII fits both width & height
+  // compute uniform scale to fit both width & height
   const scale = Math.min(cw / asciiW, ch / asciiH);
 
-  // apply all preview styles in one go
+  // apply styles (no absolute/left!), flex will center it
   asciiOutput.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform-origin: top center;
-    transform: scale(${scale});
-    
     font-family: ${fontFamily}, monospace;
     font-size: ${defaultFS}px;
     line-height: ${defaultFS}px;
     white-space: pre;
+    transform: scale(${scale});
+    transform-origin: center center;
   `;
 
   // set the text
   asciiOutput.textContent = trimmedAscii;
 
-  // ——— FULL-RES PNG RENDER (unchanged) ———
+  // ——— PNG RENDER (unchanged) ———
   const lines = trimmedAscii.split("\n").filter(l => l);
   if (!lines.length) {
     asciiCanvas.width = asciiCanvas.height = 1;
-    lastAsciiMetrics = { cssWidth:1, cssHeight:1, dpr:window.devicePixelRatio||1 };
+    lastAsciiMetrics = { cssW:1, cssH:1, dpr:window.devicePixelRatio||1 };
     return;
   }
 
@@ -152,6 +148,7 @@ async function convertSelectedFile() {
 
   lastAsciiMetrics = { cssWidth: cssW, cssHeight: cssH, dpr };
 }
+
 
 // wire up buttons
 convertBtn.addEventListener("click", () =>

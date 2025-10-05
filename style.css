@@ -29,37 +29,39 @@ button {
   - overflow hidden (no scrollbars)  
   - position relative so we can absolutely position the <pre> inside  
 */
+/*  
+  The .preview DIV is a fixed-size, centered viewport.  
+  We use flexbox so its child <pre> is always centered both horizontally and vertically.
+*/
 .preview {
   width: 100%;
   max-width: 900px;
-  height: 50vh;            /* adjust as you like */
+  height: 50vh;            /* adjust as needed */
   margin: 1rem auto;
   overflow: hidden;
-  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /*  
   The ASCII <pre> itself:  
-  - absolute at top center  
-  - 10px monospace font / line-height (our “base” size)  
-  - transform-origin at top center so scale() always stays centered  
+  - inline-block so flexbox can center it  
+  - transform-origin at center so scale keeps it centered  
 */
 pre#asciiOutput {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform-origin: top center;
-  
   background: #000;
   color: #fff;
   font-family: monospace;
-  font-size: 10px;     /* must match defaultFS in script.js */
-  line-height: 10px;   /* ditto */
+  font-size: 10px;       /* must match defaultFS in script.js */
+  line-height: 10px;
   white-space: pre;
   padding: 0;
+  display: inline-block;
+  transform-origin: center center;
 }
 
-/* Hide the empty <pre> on first load */
+/* Hide until first conversion */
 pre#asciiOutput:empty {
   display: none;
 }

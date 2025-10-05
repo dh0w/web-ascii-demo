@@ -1,28 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ASCII Image Converter</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <h1>ASCII Image Converter</h1>
 
-    <input type="file" id="fileInput" accept="image/*">
-    <input type="number" id="colsInput" placeholder="Columns" value="100" min="10" max="600">
-    <select id="fontSelect">
-      <option value="monospace">Monospace</option>
-      <option value="Courier New">Courier New</option>
-      <option value="Consolas">Consolas</option>
-    </select>
-    <button id="convertBtn">Convert</button>
-    <button id="downloadTxtBtn" disabled>Download TXT</button>
-    <button id="downloadPngBtn" disabled>Download PNG</button>
+    <div class="controls">
+      <input type="file" id="fileInput" accept="image/*" />
+      <input type="number" id="colsInput" placeholder="Columns" value="100" min="10" max="1000" />
+      <select id="fontSelect">
+        <option value="monospace">Monospace</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Consolas">Consolas</option>
+      </select>
+      <button id="convertBtn">Convert</button>
+      <button id="downloadTxtBtn" disabled>Download TXT</button>
+      <button id="downloadPngBtn" disabled>Download PNG</button>
+    </div>
 
     <h2>Preview:</h2>
-    <pre id="asciiOutput"></pre>
+
+    <!-- NEW: fixed‐size, centered preview wrapper -->
+    <div class="preview">
+      <pre id="asciiOutput"></pre>
+    </div>
+
     <canvas id="asciiCanvas" style="display:none;"></canvas>
   </div>
 
