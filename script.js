@@ -1,4 +1,4 @@
-const CHARSET        = "@#%*+=-:. ";  
+const CHARSET        = "@#%*+=-:. ";
 const fileInput      = document.getElementById("fileInput");
 const convertBtn     = document.getElementById("convertBtn");
 const asciiOutput    = document.getElementById("asciiOutput");
@@ -11,31 +11,35 @@ const asciiCanvas    = document.getElementById("asciiCanvas");
 let lastAsciiText    = "";
 let lastAsciiMetrics = null;
 
-/** Measure glyph size (monospace) at a given font size in px */
-function measureGlyphMetrics(fontFamily, fontSizePx) {
+/**
+ * Measure the width (in px) of a single '@' glyph at a given font-size.
+ */
+function measureGlyphWidth(fontFamily, fontSizePx) {
   const cvs = document.createElement("canvas");
   const ctx = cvs.getContext("2d");
   ctx.font = `${fontSizePx}px ${fontFamily}`;
   const m = ctx.measureText("@");
-  return {
-    glyphWidth:  Math.ceil(m.width),
-    glyphHeight: Math.ceil(fontSizePx)
-  };
+  return Math.ceil(m.width);
 }
 
-/** Convert the image element into ASCII string + grid dimensions */
+/**
+ * Downscale the source image to cols×rows, sample each pixel’s
+ * luminance or transparency, and build the ASCII string.
+ */
 function imageToAsciiFromImageElement(img, cols) {
-  // Estimate rows by sampling a quick small font to get char aspect
-  const test   = measureGlyphMetrics(fontSelect.value, 10);
-  const aspect = test.glyphWidth / test.glyphHeight;
-  const rows   = Math.max(1, Math.round(cols * aspect * (img.naturalHeight / img.naturalWidth)));
+  // First pick rows so we roughly preserve aspect (using a small test font)
+  const testW  = measureGlyphWidth(fontSelect.value, 10);
+  const aspect = testW / 10; 
+  const rows   = Math.max(
+    1,
+    Math.round(cols * aspect * (img.naturalHeight / img.naturalWidth))
+  );
 
-  // Draw into tiny offscreen canvas
+  // Draw into a tiny canvas
   const tmp = document.createElement("canvas");
   tmp.width  = cols;
   tmp.height = rows;
   const tctx = tmp.getContext("2d");
-  tctx.imageSmoothingEnabled = true;
   tctx.drawImage(img, 0, 0, cols, rows);
 
   const data = tctx.getImageData(0, 0, cols, rows).data;
@@ -43,11 +47,17 @@ function imageToAsciiFromImageElement(img, cols) {
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      const i    = (y * cols + x) * 4;
-      const r    = data[i], g = data[i + 1], b = data[i + 2];
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      const idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
-      ascii += CHARSET[CHARSET.length - 1 - idx];
+      const i = (y * cols + x) * 4;
+      const a = data[i + 3];
+      if (a === 0) {
+        // fully transparent → empty space
+        ascii += " ";
+      } else {
+        const r    = data[i], g = data[i + 1], b = data[i + 2];
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        const idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
+        ascii += CHARSET[CHARSET.length - 1 - idx];
+      }
     }
     ascii += "\n";
   }
@@ -55,62 +65,67 @@ function imageToAsciiFromImageElement(img, cols) {
   return { ascii, cols, rows };
 }
 
+/**
+ * Main: converts fileInput → ASCII preview (scaled to fit) → full-res PNG canvas.
+ */
 async function convertSelectedFile() {
   const file = fileInput.files[0];
   if (!file) {
-    alert("Please choose an image file.");
+    alert("Please pick an image first.");
     return;
   }
 
-  // 1) load image
+  // load image
   const img = new Image();
   img.src = URL.createObjectURL(file);
-  await img.decode().catch(() => {/* ignore */});
+  await img.decode().catch(() => { /* ignore decode errors */ });
 
-  // 2) clamp cols & pick font
-  const cols       = Math.max(10, Math.min(10000,
-                         parseInt(colsInput.value, 10) || 100));
+  // clamp columns between 1 and 1000
+  const cols = Math.max(1, Math.min(1000, parseInt(colsInput.value, 10) || 250));
   const fontFamily = fontSelect.value || "monospace";
 
-  // 3) generate raw ASCII + drop trailing spaces
+  // get raw ASCII
   const { ascii }    = imageToAsciiFromImageElement(img, cols);
-  const trimmedAscii = ascii.replace(/ +$/gm, "");
+  const trimmedAscii = ascii.replace(/ +$/gm, ""); // drop trailing blanks
   lastAsciiText      = trimmedAscii;
   downloadTxtBtn.disabled = false;
   downloadPngBtn.disabled = false;
 
-  // 4) compute a “previewSize” so that, at base, cols × charWidth ≤ 95% container
-  const containerW     = asciiOutput.parentElement.clientWidth * 0.95;
-  const baseSize       = 10; // matches your default pre font-size
-  const baseMetrics    = measureGlyphMetrics(fontFamily, baseSize);
-  const idealSize      = (containerW * baseSize) /
-                         (cols * baseMetrics.glyphWidth);
-  const previewSize    = Math.max(1, Math.min(14, Math.floor(idealSize)));
+  // ——— SCALE THE PREVIEW TO ALWAYS FILL ITS CONTAINER ———
+  // CSS default font-size in style.css is 10px / line-height 10px
+  const defaultFS   = 10;
+  const glyphW      = measureGlyphWidth(fontFamily, defaultFS);
+  const asciiWidth  = cols * glyphW;
+  const containerW  = asciiOutput.parentElement.clientWidth;
+  const scaleFactor = containerW / asciiWidth;
 
-  // 5) apply text-preview styles
-  asciiOutput.style.display        = "inline-block";
-  asciiOutput.style.whiteSpace     = "pre";
-  asciiOutput.style.transformOrigin= "top left";
-  asciiOutput.style.fontFamily     = `${fontFamily}, monospace`;
-  asciiOutput.style.fontSize       = `${previewSize}px`;
-  asciiOutput.style.lineHeight     = `${previewSize}px`;
-  asciiOutput.style.transform      = "";       // reset any old scale
+  asciiOutput.style.cssText = `
+    display: inline-block;
+    font-family: ${fontFamily}, monospace;
+    font-size: ${defaultFS}px;
+    line-height: ${defaultFS}px;
+    white-space: pre;
+    transform-origin: top left;
+    transform: scale(${scaleFactor});
+  `;
 
-  // 6) set the text
+  // update preview text
   asciiOutput.textContent = trimmedAscii;
 
-  // 7) now measure and scale horizontally if still too wide
-  const smallMetrics = measureGlyphMetrics(fontFamily, previewSize);
-  const asciiW       = cols * smallMetrics.glyphWidth;
-  const scale        = Math.min(1, containerW / asciiW);
-  asciiOutput.style.transform = `scale(${scale})`;
+  // ——— FULL-RES PNG RENDER (unchanged) ———
+  const lines = trimmedAscii.split("\n").filter(l => l);
+  if (!lines.length) {
+    asciiCanvas.width = asciiCanvas.height = 1;
+    lastAsciiMetrics = { cssWidth: 1, cssHeight: 1, dpr: window.devicePixelRatio || 1 };
+    return;
+  }
 
-  // 8) finally render your full-res PNG in the canvas (unchanged)
-  const lines = trimmedAscii.split("\n").filter(l => l.length);
-  const { glyphWidth, glyphHeight } = smallMetrics;
-  const cssW = Math.max(1, Math.max(...lines.map(l => l.length)) * glyphWidth);
-  const cssH = Math.max(1, lines.length * glyphHeight);
-  const dpr  = window.devicePixelRatio || 1;
+  // measure glyph height == defaultFS
+  const glyphH = defaultFS;
+  const maxLen = Math.max(...lines.map(l => l.length));
+  const cssW   = maxLen * glyphW;
+  const cssH   = lines.length * glyphH;
+  const dpr    = window.devicePixelRatio || 1;
 
   asciiCanvas.width  = Math.round(cssW * dpr);
   asciiCanvas.height = Math.round(cssH * dpr);
@@ -118,25 +133,29 @@ async function convertSelectedFile() {
   asciiCanvas.style.height = `${cssH}px`;
 
   const ctx = asciiCanvas.getContext("2d");
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "black";
-  ctx.fillRect(0,0,cssW,cssH);
-  ctx.font = `${previewSize}px ${fontFamily}`;
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  ctx.font = `${defaultFS}px ${fontFamily}`;
   ctx.textBaseline = "top";
   ctx.fillStyle = "white";
 
   lines.forEach((line, y) => {
     const w    = Math.ceil(ctx.measureText(line).width);
     const xOff = Math.round((cssW - w) / 2);
-    const yOff = y * glyphHeight;
+    const yOff = y * glyphH;
     ctx.fillText(line, xOff, yOff);
   });
 
-  lastAsciiMetrics = { cssW, cssH, dpr };
+  lastAsciiMetrics = { cssWidth: cssW, cssHeight: cssH, dpr };
 }
 
+// wire up buttons
+convertBtn.addEventListener("click", () =>
+  convertSelectedFile().catch(e => alert("Conversion error: " + e.message))
+);
 
-// TXT download
 downloadTxtBtn.addEventListener("click", () => {
   if (!lastAsciiText) return;
   const blob = new Blob([lastAsciiText], { type: "text/plain" });
@@ -146,7 +165,6 @@ downloadTxtBtn.addEventListener("click", () => {
   a.click();
 });
 
-// PNG download
 downloadPngBtn.addEventListener("click", () => {
   if (!lastAsciiMetrics) return;
   const url = asciiCanvas.toDataURL("image/png");
@@ -156,13 +174,5 @@ downloadPngBtn.addEventListener("click", () => {
   a.click();
 });
 
-// wire up convert button
-convertBtn.addEventListener("click", () => {
-  convertSelectedFile().catch(e => {
-    console.error(e);
-    alert("Conversion error: " + e.message);
-  });
-});
-
-// Hide the <pre> on load if empty
+// hide empty preview on startup
 asciiOutput.textContent = "";

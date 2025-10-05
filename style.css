@@ -11,24 +11,28 @@ body {
   margin: 0 auto;
 }
 
-input,
-select,
-button {
+/* base inputs/buttons */
+input, select, button {
   margin: 0.5rem;
   padding: 0.3rem 0.6rem;
   font-size: 1rem;
 }
 
-/* Base <pre> rules—will be overridden inline for #asciiOutput */
-pre {
+/* default <pre> styling (10px font, 10px line-height) */
+pre#asciiOutput {
   background: #000;
   color: #fff;
   padding: 1rem;
-  overflow-x: auto;
+  overflow: hidden;         /* hide anything that overflows when scaled */
+  font-family: monospace;
+  font-size: 10px;          /* matches defaultFS in script.js */
+  line-height: 10px;
   letter-spacing: 0;
+  white-space: pre;
+  display: none;            /* hidden until first conversion */
 }
 
-/* Hide the empty preview box on first load */
-pre#asciiOutput:empty {
-  display: none;
+/* show it once it’s non-empty */
+pre#asciiOutput:not(:empty) {
+  display: inline-block;
 }
