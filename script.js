@@ -108,7 +108,7 @@ async function convertSelectedFile() {
   `;
   asciiOutput.textContent = trimmedAscii;
 
-  // — render full-res PNG (unchanged) —
+  // — render full-res PNG —
   const lines = trimmedAscii.split("\n").filter(l => l);
   if (!lines.length) {
     asciiCanvas.width = asciiCanvas.height = 1;
@@ -116,8 +116,8 @@ async function convertSelectedFile() {
     return;
   }
 
-  const maxLen = Math.max(...lines.map(l => l.length));
-  const cssW   = maxLen * glyphW;
+  // Use actual columns width instead of max line length
+  const cssW   = cols * glyphW;
   const cssH   = lines.length * defaultFS;
   const dpr    = window.devicePixelRatio || 1;
 
@@ -136,10 +136,8 @@ async function convertSelectedFile() {
   ctx.fillStyle    = "white";
 
   lines.forEach((line, y) => {
-    const w    = Math.ceil(ctx.measureText(line).width);
-    const xOff = Math.round((cssW - w) / 2);
     const yOff = y * defaultFS;
-    ctx.fillText(line, xOff, yOff);
+    ctx.fillText(line, 0, yOff);
   });
 
   lastAsciiMetrics = { cssWidth: cssW, cssHeight: cssH, dpr };
