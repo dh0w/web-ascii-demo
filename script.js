@@ -116,8 +116,12 @@ async function convertSelectedFile() {
     white-space: pre;
     transform-origin: center center;
     transform: scale(${scale});
+    display: inline-block;
   `;
   asciiOutput.textContent = trimmedAscii;
+
+  // Update wrapper to fit content
+  previewWrapper.style.display = 'inline-block';
 
   const lines = trimmedAscii.split("\n").filter(l => l);
   if (!lines.length) {
