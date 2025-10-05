@@ -11,19 +11,13 @@ const asciiCanvas    = document.getElementById("asciiCanvas");
 let lastAsciiText    = "";
 let lastAsciiMetrics = null;
 
-/** Measure pixel‐width of “@” at a given font‐size */
+/** Measure pixel‐width of "@" at a given font‐size */
 function measureGlyphWidth(fontFamily, fontSizePx) {
   const cvs = document.createElement("canvas");
   const ctx = cvs.getContext("2d");
   ctx.font = `${fontSizePx}px ${fontFamily}`;
   return Math.ceil(ctx.measureText("@").width);
 }
-
-/** 
- * Downsample the image to cols×rows, then for each pixel:
- * - if alpha < 255 → space
- * - else map luminance → a CHARSET character 
- */
 
 /** 
  * Downsample the image to cols×rows, then for each pixel:
@@ -71,7 +65,6 @@ function imageToAsciiFromImageElement(img, cols) {
   return { ascii, cols, rows };
 }
 
-
 async function convertSelectedFile() {
   const file = fileInput.files[0];
   if (!file) {
@@ -110,7 +103,7 @@ async function convertSelectedFile() {
     font-size: ${defaultFS}px;
     line-height: ${defaultFS}px;
     white-space: pre;
-    transform-origin: center top;
+    transform-origin: center center;
     transform: scale(${scale});
   `;
   asciiOutput.textContent = trimmedAscii;
