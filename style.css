@@ -1,3 +1,6 @@
+/* style.css */
+
+/* Base page setup */
 body {
   font-family: Arial, sans-serif;
   background: #111;
@@ -11,28 +14,46 @@ body {
   margin: 0 auto;
 }
 
-/* base inputs/buttons */
-input, select, button {
+/* Form controls */
+input,
+select,
+button {
   margin: 0.5rem;
   padding: 0.3rem 0.6rem;
   font-size: 1rem;
 }
 
-/* default <pre> styling (10px font, 10px line-height) */
+/*  
+  Preview viewport: fixed width/height, centered, hides overflow,
+  prevents page scroll and shifting when ASCII is scaled.
+*/
+.preview {
+  width: 100%;
+  max-width: 900px;
+  height: 50vh;              /* adjust as needed: fixed height */
+  margin: 1rem auto;         /* center horizontally + vertical gap */
+  overflow: hidden;          
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/*  
+  ASCII <pre> itself: 10px monospace font, no padding,
+  transform-origin at top center so scaling looks centered.
+*/
 pre#asciiOutput {
   background: #000;
   color: #fff;
-  padding: 1rem;
-  overflow: hidden;         /* hide anything that overflows when scaled */
   font-family: monospace;
-  font-size: 10px;          /* matches defaultFS in script.js */
+  font-size: 10px;           /* matches defaultFS in script.js */
   line-height: 10px;
-  letter-spacing: 0;
   white-space: pre;
-  display: none;            /* hidden until first conversion */
+  padding: 0;
+  transform-origin: center top;
 }
 
-/* show it once it’s non-empty */
-pre#asciiOutput:not(:empty) {
-  display: inline-block;
+/* Hide the empty <pre> until first conversion */
+pre#asciiOutput:empty {
+  display: none;
 }
