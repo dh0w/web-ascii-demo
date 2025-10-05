@@ -24,25 +24,32 @@ function measureGlyphWidth(fontFamily, fontSizePx) {
  * - if alpha < 255 → space
  * - else map luminance → a CHARSET character 
  */
-/**
+
+/** 
  * Downsample the image to cols×rows, then for each pixel:
- * - if alpha === 0 → space
- * - else map luminance → a CHARSET character 
+ * - Blend transparency with white background
+ * - Map luminance → a CHARSET character 
  */
 function imageToAsciiFromImageElement(img, cols) {
-  // estimate rows so the ASCII grid preserves aspect
+  // estimate rows to preserve aspect (adjusted ratio for better circles)
   const testW  = measureGlyphWidth(fontSelect.value, 10);
   const aspect = testW / 10;
   const rows   = Math.max(
     1,
-    Math.round(cols * aspect * (img.naturalHeight / img.naturalWidth))
+    Math.round(cols * aspect * (img.naturalHeight / img.naturalWidth) * 0.95)
   );
 
-  // draw tiny offscreen canvas
+  // draw tiny offscreen canvas with white background
   const tmp = document.createElement("canvas");
   tmp.width  = cols;
   tmp.height = rows;
   const tctx = tmp.getContext("2d");
+  
+  // Fill with white background first
+  tctx.fillStyle = "white";
+  tctx.fillRect(0, 0, cols, rows);
+  
+  // Draw image on top (transparency will blend with white)
   tctx.drawImage(img, 0, 0, cols, rows);
 
   const data = tctx.getImageData(0, 0, cols, rows).data;
@@ -51,20 +58,12 @@ function imageToAsciiFromImageElement(img, cols) {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = (y * cols + x) * 4;
-      const a = data[i + 3];
-
-      // ←── UPDATED LINE ──→
-      // Only pixels with alpha *exactly* 0 become blank.
-      if (a === 0) {
-        ascii += " ";
-      } else {
-        const r    = data[i],
-              g    = data[i + 1],
-              b    = data[i + 2],
-              gray = 0.299 * r + 0.587 * g + 0.114 * b,
-              idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
-        ascii += CHARSET[CHARSET.length - 1 - idx];
-      }
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      
+      // Calculate luminance from blended color
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      const idx  = Math.floor((gray / 255) * (CHARSET.length - 1));
+      ascii += CHARSET[CHARSET.length - 1 - idx];
     }
     ascii += "\n";
   }
