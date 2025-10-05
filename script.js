@@ -116,11 +116,17 @@ async function convertSelectedFile() {
     return;
   }
 
-  // Calculate width based on the longest trimmed line
+  // Find the longest line and pad all lines to that length
   const maxLen = Math.max(...lines.map(l => l.length));
-  const cssW   = maxLen * glyphW;
-  const cssH   = lines.length * defaultFS;
-  const dpr    = window.devicePixelRatio || 1;
+  const paddedLines = lines.map(line => line.padEnd(maxLen, ' '));
+  
+  // Measure the actual pixel width of the longest line
+  const tmpCanvas = document.createElement("canvas");
+  const tmpCtx = tmpCanvas.getContext("2d");
+  tmpCtx.font = `${defaultFS}px ${fontFamily}`;
+  const cssW = Math.ceil(tmpCtx.measureText(paddedLines[0]).width);
+  const cssH = paddedLines.length * defaultFS;
+  const dpr = window.devicePixelRatio || 1;
 
   asciiCanvas.width  = Math.round(cssW * dpr);
   asciiCanvas.height = Math.round(cssH * dpr);
@@ -136,7 +142,7 @@ async function convertSelectedFile() {
   ctx.textBaseline = "top";
   ctx.fillStyle    = "white";
 
-  lines.forEach((line, y) => {
+  paddedLines.forEach((line, y) => {
     const yOff = y * defaultFS;
     ctx.fillText(line, 0, yOff);
   });
